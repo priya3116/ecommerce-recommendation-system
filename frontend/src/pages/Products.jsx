@@ -1,0 +1,13 @@
+import { useEffect, useMemo, useState } from "react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { getProducts } from "../services/api";
+import { ProductCard, Loading, ErrorMessage, Empty, SectionHeading } from "../components/UI";
+
+export default function Products() {
+  const [products, setProducts] = useState([]); const [query, setQuery] = useState(""); const [category, setCategory] = useState("All"); const [brand, setBrand] = useState("All"); const [rating, setRating] = useState("0"); const [sort, setSort] = useState("default"); const [error, setError] = useState(null);
+  useEffect(() => { getProducts().then(setProducts).catch(setError); }, []);
+  const categories = [...new Set(products.map(p => p.category).filter(Boolean))]; const brands = [...new Set(products.map(p => p.brand).filter(Boolean))];
+  const activeBrand = brand === "All brands" ? "All" : brand;
+  const filtered = useMemo(() => products.filter(p => (!query || `${p.name} ${p.brand}`.toLowerCase().includes(query.toLowerCase())) && (category === "All" || p.category === category) && (activeBrand === "All" || p.brand === activeBrand) && Number(p.rating || 0) >= Number(rating)).sort((a,b) => sort === "low" ? a.price-b.price : sort === "high" ? b.price-a.price : 0), [products, query, category, activeBrand, rating, sort]);
+  return <section className="section page-section"><SectionHeading eyebrow="Catalog" title="Explore products" /><div className="filters"><label className="search-field"><Search size={17} /><input placeholder="Search products or brands..." value={query} onChange={e => setQuery(e.target.value)} /></label><select value={category} onChange={e => setCategory(e.target.value)}><option>All</option>{categories.map(x => <option key={x}>{x}</option>)}</select><select value={brand} onChange={e => setBrand(e.target.value || "All")}><option value="All">All brands</option>{brands.map(x => <option key={x} value={x}>{x}</option>)}</select><select value={rating} onChange={e => setRating(e.target.value)}><option value="0">Any rating</option><option value="4">4+ stars</option><option value="3">3+ stars</option></select><select value={sort} onChange={e => setSort(e.target.value)}><option value="default">Sort by</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option></select><span className="filter-count"><SlidersHorizontal size={15} /> {filtered.length} products</span></div>{error ? <ErrorMessage error={error} /> : !products.length ? <Loading text="Loading products..." /> : filtered.length ? <div className="product-grid">{filtered.map(p => <ProductCard product={p} key={p.product_id} />)}</div> : <Empty text="No products match these filters." />}</section>;
+}
